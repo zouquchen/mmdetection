@@ -218,7 +218,7 @@ class RepPointsHead(AnchorFreeHead):
             raise NotImplementedError
         return bbox
 
-    def gen_grid_from_reg(self, reg, previous_boxes):
+    def gen_grid_from_reg(self, reg, previ点集表示法RepPointsous_boxes):
         """Base on the previous bboxes and regression values, we compute the
         regressed bboxes and generate the grids on the bboxes.
 
