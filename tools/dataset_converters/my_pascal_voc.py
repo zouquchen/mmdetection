@@ -6,9 +6,14 @@ import xml.etree.ElementTree as ET
 import mmcv
 import numpy as np
 
-from mmdet.core import voc_classes
 
-label_ids = {name: i for i, name in enumerate(voc_classes())}
+def RSOD_classes():
+    return [
+        'aircraft', 'oiltank', 'overpass', 'playground'
+    ]
+
+
+label_ids = {name: i for i, name in enumerate(RSOD_classes())}
 
 
 def parse_xml(args):
@@ -66,27 +71,26 @@ def parse_xml(args):
 
 
 def cvt_annotations(devkit_path, years, split, out_file):
-    if not isinstance(years, list):
-        years = [years]
+
     annotations = []
-    for year in years:
-        filelist = osp.join(devkit_path,
-                            f'VOC{year}/ImageSets/Main/{split}.txt')
-        if not osp.isfile(filelist):
-            print(f'filelist does not exist: {filelist}, '
-                  f'skip voc{year} {split}')
-            return
-        img_names = mmcv.list_from_file(filelist)
-        xml_paths = [
-            osp.join(devkit_path, f'VOC{year}/Annotations/{img_name}.xml')
-            for img_name in img_names
-        ]
-        img_paths = [
-            f'VOC{year}/JPEGImages/{img_name}.jpg' for img_name in img_names
-        ]
-        part_annotations = mmcv.track_progress(parse_xml,
-                                               list(zip(xml_paths, img_paths)))
-        annotations.extend(part_annotations)
+
+    filelist = osp.join(devkit_path,
+                        f'ImageSets/Main/{split}.txt')
+    if not osp.isfile(filelist):
+        print(f'filelist does not exist: {filelist}, '
+              f'skip voc {split}')
+        return
+    img_names = mmcv.list_from_file(filelist)
+    xml_paths = [
+        osp.join(devkit_path, f'Annotations/{img_name}.xml')
+        for img_name in img_names
+    ]
+    img_paths = [
+        f'JPEGImages/{img_name}.jpg' for img_name in img_names
+    ]
+    part_annotations = mmcv.track_progress(parse_xml,
+                                           list(zip(xml_paths, img_paths)))
+    annotations.extend(part_annotations)
     if out_file.endswith('json'):
         annotations = cvt_to_coco_json(annotations)
     mmcv.dump(annotations, out_file)
@@ -140,7 +144,7 @@ def cvt_to_coco_json(annotations):
         coco['annotations'].append(annotation_item)
         return annotation_id + 1
 
-    for category_id, name in enumerate(voc_classes()):
+    for category_id, name in enumerate(RSOD_classes()):
         category_item = dict()
         category_item['supercategory'] = str('none')
         category_item['id'] = int(category_id)
@@ -183,8 +187,8 @@ def cvt_to_coco_json(annotations):
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Convert PASCAL VOC annotations to mmdetection format')
-    parser.add_argument('devkit_path', default='D:/zqc2/1-code/mmdetection/data/RSOD', help='pascal voc devkit path')
-    parser.add_argument('-o', '--out-dir', default='D:/zqc2/1-code/mmdetection/data/RSOD', help='output path')
+    parser.add_argument('--devkit_path', help='pascal voc devkit path')
+    parser.add_argument('-o', '--out-dir', help='output path')
     parser.add_argument(
         '--out-format',
         default='pkl',
@@ -207,12 +211,7 @@ def main():
     for split in ['train', 'val', 'trainval']:
         dataset_name = prefix + '_' + split
         print(f'processing {dataset_name} ...')
-        cvt_annotations(devkit_path, split,
-                        osp.join(out_dir, dataset_name + out_fmt))
-    if not isinstance(list):
-        dataset_name = prefix + '_test'
-        print(f'processing {dataset_name} ...')
-        cvt_annotations(devkit_path, 'test',
+        cvt_annotations(devkit_path, '', split,
                         osp.join(out_dir, dataset_name + out_fmt))
     print('Done!')
 
